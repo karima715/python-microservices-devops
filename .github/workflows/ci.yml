@@ -48,9 +48,6 @@ jobs:
     - name: Login to DockerHub
       run: |
         echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-      env:
-        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     
     - name: Build and push backend
       uses: docker/build-push-action@v4
