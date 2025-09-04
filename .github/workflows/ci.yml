@@ -45,7 +45,21 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
     
+    # 🔍 Debug step added here
+    - name: Debug DockerHub secrets
+      env:
+        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      run: |
+        echo "Checking DockerHub Username..."
+        echo "DOCKERHUB_USERNAME is: $DOCKERHUB_USERNAME"
+        echo "Checking DockerHub Token length..."
+        echo "Token length is: ${#DOCKERHUB_TOKEN}"
+
     - name: Login to DockerHub
+      env:
+        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
       run: |
         echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
     
