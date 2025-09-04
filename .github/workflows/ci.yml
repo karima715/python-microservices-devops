@@ -2,9 +2,11 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   test:
@@ -37,7 +39,13 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
-    
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      EMAIL_USER: ${{ secrets.EMAIL_USER }}
+      EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+      EMAIL_TO: ${{ secrets.EMAIL_TO }}
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -45,11 +53,8 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
     
-    # 🔍 Debug step added here
+    # 🔍 Debug step
     - name: Debug DockerHub secrets
-      env:
-        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
       run: |
         echo "Checking DockerHub Username..."
         echo "DOCKERHUB_USERNAME is: $DOCKERHUB_USERNAME"
@@ -57,9 +62,6 @@ jobs:
         echo "Token length is: ${#DOCKERHUB_TOKEN}"
 
     - name: Login to DockerHub
-      env:
-        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
       run: |
         echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
     
@@ -94,3 +96,26 @@ jobs:
       run: |
         echo "Deployment failed for commit ${{ github.sha }}"
         exit 1
+
+  notify:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: always()  # Runs even if build-and-push fails
+    steps:
+      - name: Send CI/CD status email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USER }}
+          password: ${{ secrets.EMAIL_PASS }}
+          from: ${{ secrets.EMAIL_USER }}
+          to: ${{ secrets.EMAIL_TO }}
+          subject: "CI/CD Pipeline Status: ${{ needs.build-and-push.result }}"
+          body: |
+            The pipeline for python-microservices-devops has completed.
+            Status: ${{ needs.build-and-push.result }}
+            Commit: ${{ github.sha }}
+            Actor: ${{ github.actor }}
+            Logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          secure: true
