@@ -81,4 +81,22 @@ jobs:
       if: failure()
       run: |
         echo "Deployment failed for commit ${{ github.sha }}"
-        
+        exit 1
+
+  notify:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: always()  # Runs even if build-and-push fails
+    steps:
+      - name: Send CI/CD status email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USER }}
+          password: ${{ secrets.EMAIL_PASS }}
+          from: ${{ secrets.EMAIL_USER }}   
+          to: ${{ secrets.EMAIL_TO }}
+          subject: "CI/CD Pipeline Status"
+          body: "Your DevOps pipeline for python-microservices-devops has completed. Check logs for details."
+          secure: true
